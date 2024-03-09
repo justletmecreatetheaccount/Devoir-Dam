@@ -1,4 +1,5 @@
 from scipy.integrate import odeint as odeint
+import math
 import numpy as np
 from matplotlib import pyplot as plt
 
@@ -18,7 +19,8 @@ Q = 2800000 #@valeur chaleur emise par fuel par kg de melance admis@ #[J/kg_inle
 D = D
 L = L             # longueur de la bielle, en [m]
 R = C/2           # longueur de la manivelle, en [m]
-Vc = np.pi * D**2 * R / 2     #difference entre volume max et vol min
+#Vc = np.pi * D**2 * R / 2     #difference entre volume max et vol min
+Vc = np.pi * C * math.pow(D/2, 2)
 #Qtot = Q*0.75*Vc      # en J (chaleur émise par fuel par kg * masse volumique de l'essence * Vc /1000)
 mPiston = mpiston #kg
 mBielle = mbielle #kg
@@ -34,10 +36,33 @@ def Qtot(s):
     Qto = Mgaz*Q
     return Qto
 
+def plot_Q(theta, Q):
+    #print(P)
+    fig, axs = plt.subplots()
+    plt.title("Q")
+    axs.plot(theta, Q,'blue')
+    axs.set_xlabel('Angle [radian]')
+    axs.set_ylabel('q')
+    axs.grid(True)
+   # plt.savefig('Pression' + '.png')
+    plt.show()
+
+
+def plot_V(theta, V):
+    #print(P)
+    fig, axs = plt.subplots()
+    plt.title("V")
+    axs.plot(theta, V,'red')
+    axs.set_xlabel('Angle [radian]')
+    axs.set_ylabel('m³')
+    axs.grid(True)
+   # plt.savefig('Pression' + '.png')
+    plt.show()
 
 def Volume(theta):
     return (Vc*(1-np.cos(theta)+beta-(beta*beta-np.sin(theta)*np.sin(theta))**0.5))/2+Vc/(r-1)
 
+plot_V(theta, Volume(theta))
 
 def dQ(theta, thetaC, deltaThetaC,s):
     return (Qtot(s)*(np.pi*np.sin(((theta-thetaC)*np.pi)/deltaThetaC)))/(2*deltaThetaC)
