@@ -1,4 +1,5 @@
 from scipy.integrate import odeint as odeint
+import scipy.integrate as integrate
 import math
 import numpy as np
 from matplotlib import pyplot as plt
@@ -11,7 +12,7 @@ C = 0.09 #@valeur course@ #[m]
 L = 0.18 #@valeur longueur bielle@ #[m]
 mpiston = 0.8 #@valeur masse piston@ #[kg]
 mbielle = 0.9 #@valeur masse bielle@ #[kg]
-Q = 2800000 #@valeur chaleur emise par fuel par kg de melance admis@ #[J/kg_inlet gas]
+Q = 2800000 #@valeur chaleur emise par fuel par kg de melange admis@ #[J/kg_inlet gas]
 
 
 """code"""
@@ -19,8 +20,7 @@ Q = 2800000 #@valeur chaleur emise par fuel par kg de melance admis@ #[J/kg_inle
 D = D
 L = L             # longueur de la bielle, en [m]
 R = C/2           # longueur de la manivelle, en [m]
-#Vc = np.pi * D**2 * R / 2     #difference entre volume max et vol min
-Vc = np.pi * C * math.pow(D/2, 2)
+Vc = np.pi * D**2 * R / 2     #difference entre volume max et vol min
 #Qtot = Q*0.75*Vc      # en J (chaleur émise par fuel par kg * masse volumique de l'essence * Vc /1000)
 mPiston = mpiston #kg
 mBielle = mbielle #kg
@@ -65,8 +65,12 @@ def Volume(theta):
 plot_V(theta, Volume(theta))
 
 def dQ(theta, thetaC, deltaThetaC,s):
-    return (Qtot(s)*(np.pi*np.sin(((theta-thetaC)*np.pi)/deltaThetaC)))/(2*deltaThetaC)
+    return (Qtot(s)*(np.pi*np.sin(((theta-thetaC)*np.pi) /deltaThetaC)))/(2*deltaThetaC)
 
+def testQ(theta, thetaC, deltaThetaC, s):
+    return Qtot(s) * (1/2) * (1 - np.cos(np.pi * ((theta - thetaC) / deltaThetaC)))
+
+plot_Q(theta, testQ(theta, np.radians(-26), np.radians(43), 1.9))
 
 def dV(theta):
     return (Vc*(np.sin(theta)+(np.sin(theta)*np.cos(theta))/(beta*beta-np.sin(theta)*np.sin(theta))**0.5))/2
@@ -95,7 +99,7 @@ def dpdtheta(p, theta, thetaC, deltaThetaC, s):
         
     return(dpdt)
 
-def p(theta, thetaC, deltaThetaC, s):
+def pr(theta, thetaC, deltaThetaC, s):
     """
     retourne la pression entre -2pi et +2pi en integrant dpdtheta
     """
@@ -107,7 +111,7 @@ def forcemax(theta, tpm, thetaC, deltaThetaC, s):
     retourne la valeur de la force maximale s'exerçant sur la bielle
     """
     omega = tpm*2*np.pi/(60)  #omega en rad/s
-    pression = np.ravel(p(theta, thetaC, deltaThetaC, s))
+    pression = np.ravel(pr(theta, thetaC, deltaThetaC, s))
     plot_p(theta, pression)
     
     Fp = np.pi*D**2*pression/4
