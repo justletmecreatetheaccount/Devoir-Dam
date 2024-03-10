@@ -1,7 +1,8 @@
 import math
 from types import prepare_class
 from matplotlib.cbook import print_cycles
-from scipy.integrate import odeint as odeint
+from scipy.integrate import odeint
+from scipy.optimize import fsolve
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -18,8 +19,8 @@ LONGUEUR_BIELLE = 0.18 #m
 DIAMETRE_CYLINDRE = 0.08 #m
 VOLUME_MINIMUN = 0.0000452389 #m³
 
-MASSE_PISTON = -1
-MASSE_BIELLE = -1
+MASSE_PISTON = 0.8 #Kg
+MASSE_BIELLE = 0.9 #Kg
 """
 MESURES SUR LE MOTEUR
 """
@@ -93,21 +94,30 @@ def Evolution_pression(pression, theta, thetaC, deltaThetaC, rapport_air_carbura
         return(dPression)
 
 
-        
-
 def Pression(theta, thetaC, deltaThetaC, rapport_air_carburant):
     return odeint(Evolution_pression, PRESSION_ADMISSION, theta, args = (thetaC, deltaThetaC, rapport_air_carburant))
 
+def Rankine(t, f_crit, constantes_moment, k):
+    F_euler = (math.pi**2 * 200 * 10**9 * constantes_moment * t**4)/((k * LONGUEUR_BIELLE)**2)
+    return 1/(F_euler) + 1/(11 * t**2 * 450 * 10**6) - 1/(f_crit)
 
 def myfunc(rpm, s, theta, thetaC, deltaThetaC):
     #VOTRE CODE
-    vitesse_angulaire = -1 #omega -> d theta/ d temps 
+    vitesse_angulaire = rpm / 60 * 2 * math.pi #omega -> d theta/ d temps 
     V_output = Volume_Instant(theta)
     Q_output = Apport_Chaleur_Instant(theta, thetaC, deltaThetaC, RAPPORT_AIR_ESSENCE)
-    F_pied_output = -1
-    F_tete_output = -1
+    for i in range(len(theta)):
+        if (theta[i] < thetaC) or (theta[i] > thetaC + deltaThetaC):
+            Q_output[i] = 0
     p_output = np.ravel(Pression(theta, thetaC, deltaThetaC, RAPPORT_AIR_ESSENCE))
-    t = -1
+    F_pression = p_output * np.pi * DIAMETRE_CYLINDRE ** 2 / 4
+    F_pied_output = F_pression - MASSE_PISTON * RAYON_VILBREQUIN * vitesse_angulaire ** 2 * np.cos(theta)
+    F_tete_output = -F_pression + (MASSE_PISTON + MASSE_BIELLE) * RAYON_VILBREQUIN * vitesse_angulaire ** 2 * np.cos(theta)
+
+    F_crit = max(np.max(np.abs(F_tete_output)), np.max(np.abs(F_pied_output)))
+    txx = fsolve(Rankine, 0.01,args=(F_crit, 419/12, 0.5))
+    tyy = fsolve(Rankine, 0.01,args=(F_crit, 131/12, 1  ))
+    t = max(txx, tyy)
     return (V_output, Q_output, F_pied_output, F_tete_output, p_output, t) ;
 
 def plot_p(theta, P):
@@ -145,10 +155,23 @@ def plot_c(theta, c):
    # plt.savefig('Pression' + '.png')
     plt.show()
 
+def plot_f(theta, f, f2):
+    #print(P)
+    fig, axs = plt.subplots()
+    plt.title("f")
+    axs.plot(theta, f2,'blue')
+    axs.plot(theta, f,'red')
+    axs.set_xlabel('Angle [radian]')
+    axs.set_ylabel('newton')
+    axs.grid(True)
+   # plt.savefig('Pression' + '.png')
+    plt.show()
 
 theta = np.linspace(-2*np.pi, 2*np.pi, 1001)
-volume, chaleur, F, Fo, pression, t = myfunc(2555, 1.9, theta, np.radians(-26), np.radians(43))
+volume, chaleur, ft, fp, pression, t = myfunc(2555, 1.9, theta, np.radians(-26), np.radians(43))
 
 plot_v(theta, volume)
 plot_c(theta, chaleur)
 plot_p(theta, pression)
+plot_f(theta, ft, fp)
+print(t)
