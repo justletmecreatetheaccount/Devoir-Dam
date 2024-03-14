@@ -9,18 +9,29 @@ import matplotlib.pyplot as plt
 """
 UNIQUEMENT DES GRAMMES
 """
-
+D = 0.08 #[m]
+C = 0.045 * 2 #[m]
+L = 0.18 #[m]
+mpiston = 0.8 #[kg]
+mbielle = 0.9 #[kg]
+tau = 11 #[-]
+Mair_carb = 14.5 #[kg_air/kg_fuel]
 
 """
 MESURES SUR LE MOTEUR
 """
-RAYON_VILBREQUIN = 0.045 #m
-LONGUEUR_BIELLE = 0.18 #m
-DIAMETRE_CYLINDRE = 0.08 #m
-VOLUME_MINIMUN = 0.0000452389 #m³
 
-MASSE_PISTON = 0.8 #Kg
-MASSE_BIELLE = 0.9 #Kg
+RAYON_VILBREQUIN = C/2 #m
+LONGUEUR_BIELLE = L #m
+DIAMETRE_CYLINDRE = D #m
+VOLUME_COURSE = RAYON_VILBREQUIN * 2 * math.pi * math.pow(DIAMETRE_CYLINDRE / 2, 2)
+
+VOLUME_MINIMUN =  VOLUME_COURSE / (tau - 1)#m³
+
+MASSE_PISTON = mpiston #Kg
+MASSE_BIELLE = mbielle #Kg
+
+
 """
 MESURES SUR LE MOTEUR
 """
@@ -38,15 +49,16 @@ GAMMA = 1.3
 
 POUVOIR_CALORIFIQUE = 43000 #J/g_essence (43000 normalement)
 MASSE_MOLAIRE_ESSENCE = 114 #g/mole
-RAPPORT_AIR_ESSENCE = 15.4 #g_air/g_essence (14.5 normalement)
+RAPPORT_AIR_ESSENCE = 14.5 #g_air/g_essence (14.5 normalement)
 MASSE_MOLAIRE_DIESEL = 142.3 #g/mole
 RAPPORT_AIR_DIESEL = 26 #g_air/g_essence
 
-VOLUME_MAX = RAYON_VILBREQUIN * 2 * math.pi * math.pow(DIAMETRE_CYLINDRE / 2, 2) + VOLUME_MINIMUN
-VOLUME_COURSE = VOLUME_MAX - VOLUME_MINIMUN
+VOLUME_MAX = VOLUME_COURSE + VOLUME_MINIMUN
+
 """
 CONSTANTES
 """
+
 
 def Apport_Chaleur_Instant(theta, thetaC, deltaThetaC, rapport_air_carburant):
 
@@ -103,9 +115,8 @@ def Rankine(t, f_crit, constantes_moment, k):
 
 def myfunc(rpm, s, theta, thetaC, deltaThetaC):
     global SURALIMENTATION
-    global PRESSION_ADMISSION
     SURALIMENTATION = s
-    PRESSION_ADMISSION = SURALIMENTATION * 10000
+    print(SURALIMENTATION)
     #VOTRE CODE
     vitesse_angulaire = rpm / 60 * 2 * math.pi #omega -> d theta/ d temps 
     V_output = Volume_Instant(theta)
@@ -121,7 +132,9 @@ def myfunc(rpm, s, theta, thetaC, deltaThetaC):
     F_crit = max(np.max(np.abs(F_tete_output)), np.max(np.abs(F_pied_output)))
     txx = fsolve(Rankine, 0.01,args=(F_crit, 419/12, 0.5))
     tyy = fsolve(Rankine, 0.01,args=(F_crit, 131/12, 1  ))
-    t = max(txx, tyy)
+    print(txx)
+    print(tyy)
+    t = max(abs(txx[0]), abs(tyy[0]))
     return (V_output, Q_output, F_pied_output, F_tete_output, p_output, t) ;
 
 def plot_p(theta, P):
@@ -172,10 +185,11 @@ def plot_f(theta, f, f2):
     plt.show()
 
 theta = np.linspace(-2*np.pi, 2*np.pi, 1001)
-volume, chaleur, ft, fp, pression, t = myfunc(2555, 1.9, theta, np.radians(-26), np.radians(43))
+volume, chaleur, ft, fp, pression, t = myfunc(2555, 43, theta, np.radians(-26), np.radians(43))
 
 plot_v(theta, volume)
 plot_c(theta, chaleur)
 plot_p(theta, pression)
 plot_f(theta, ft, fp)
 print(t)
+
